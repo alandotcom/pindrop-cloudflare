@@ -77,7 +77,7 @@ limits of an origin-only gate.
 The client loads `pindrop.js` and `partysocket` from a CDN, so nothing has to be
 bundled. Host `client/pindrop-comments.js` somewhere your site can import it:
 self-host a copy, or reference this repo through a CDN such as
-`https://cdn.jsdelivr.net/gh/YOUR_ORG/pindrop-hosted@main/client/pindrop-comments.js`.
+`https://cdn.jsdelivr.net/gh/alandotcom/pindrop-cloudflare@main/client/pindrop-comments.js`.
 
 ### Any site (plain HTML / any framework)
 
@@ -117,7 +117,7 @@ Importing from a CDN by URL is untyped by default. Map the URL to the local
 declaration in a project `.d.ts`:
 
 ```ts
-declare module "https://cdn.jsdelivr.net/gh/YOUR_ORG/pindrop-hosted@main/client/pindrop-comments.js" {
+declare module "https://cdn.jsdelivr.net/gh/alandotcom/pindrop-cloudflare@main/client/pindrop-comments.js" {
   export * from "./types/pindrop-comments";
 }
 ```
@@ -138,7 +138,7 @@ In your base layout (e.g. `src/layouts/Base.astro`), just before `</body>`:
 <script is:inline define:vars={{
   prodHost: "yoursite.com",
   host: "pindrop-comments.YOUR_SUBDOMAIN.workers.dev",
-  clientUrl: "https://cdn.jsdelivr.net/gh/YOUR_ORG/pindrop-hosted@main/client/pindrop-comments.js",
+  clientUrl: "https://cdn.jsdelivr.net/gh/alandotcom/pindrop-cloudflare@main/client/pindrop-comments.js",
 }}>
   {`if (location.hostname !== prodHost) {
     import(clientUrl)
