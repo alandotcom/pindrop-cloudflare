@@ -30,6 +30,18 @@ Astro example, but nothing here is tied to a particular framework.
   offline. On reconnect the room replays its `init` frame and the client
   reconciles.
 
+## `host` and `room`
+
+| Value  | Required | What it is |
+| ------ | -------- | ---------- |
+| `host` | **yes** | Your deployed comments Worker, e.g. `pindrop-comments.YOUR_SUBDOMAIN.workers.dev`. One value, same on every branch. |
+| `room` | no | Which board inside that Worker. Defaults to `location.hostname`, so reviewers on the same preview URL share a board. |
+
+The `room` default is read in the browser at page load, so you never need a
+preview URL ahead of time. Only set `room` if your platform gives each deploy a
+unique URL and you want one stable board per branch (pass the branch name from
+CI).
+
 ## Repo layout
 
 ```
@@ -81,8 +93,9 @@ self-host a copy, or reference this repo through a CDN such as
 
 ### Any site (plain HTML / any framework)
 
-Drop this in. `host` is the only value you must supply; `room` defaults to the
-page's hostname, so reviewers on the same preview URL share a board:
+Drop this in. The only required value is `host`. Everything else is optional,
+including `room`, which falls back to the page's hostname so reviewers on the
+same preview URL share a board (see [`host` and `room`](#host-and-room)):
 
 ```html
 <script type="module">
