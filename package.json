@@ -1,0 +1,28 @@
+{
+  "name": "pindrop-comments",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "build": "wrangler deploy --dry-run --outdir dist",
+    "types": "wrangler types",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:client": "node --test 'test/client/*.test.mjs'",
+    "test:all": "vitest run && node --test 'test/client/*.test.mjs'",
+    "smoke": "node scripts/smoke.mjs",
+    "serve:demo": "bunx --bun serve . -l 3000"
+  },
+  "dependencies": {
+    "partyserver": "^0.5.7"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.16.15",
+    "@cloudflare/workers-types": "^4.20250604.0",
+    "typescript": "^5.5.0",
+    "vitest": "^4.1.0",
+    "wrangler": "^4.100.0"
+  }
+}

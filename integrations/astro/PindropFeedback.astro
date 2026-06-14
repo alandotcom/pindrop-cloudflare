@@ -1,0 +1,40 @@
+---
+// Astro integration for live Pindrop comments on preview deploys.
+//
+// Render <PindropFeedback /> once in your base layout (e.g. just before
+// </body>). On the production build PUBLIC_IS_PREVIEW is baked false, so this
+// whole block (and the dynamically-imported client) is omitted from prod
+// output. Nothing ships to production.
+//
+// Build-time env, baked from WORKERS_CI_BRANCH in astro.config.mjs `define`
+// (see the project README, "Astro" section):
+//   PUBLIC_IS_PREVIEW            true on preview builds, false on prod
+//   PUBLIC_PREVIEW_BRANCH        branch name -> the board / room id
+//   PUBLIC_COMMENTS_HOST         your deployed comments Worker host
+//   PUBLIC_COMMENTS_CLIENT_URL   URL of client/pindrop-comments.js (CDN or self-hosted)
+const isPreview =
+  import.meta.env.PUBLIC_IS_PREVIEW === true ||
+  import.meta.env.PUBLIC_IS_PREVIEW === "true";
+const branch = import.meta.env.PUBLIC_PREVIEW_BRANCH;
+const commentsHost = import.meta.env.PUBLIC_COMMENTS_HOST;
+const clientUrl = import.meta.env.PUBLIC_COMMENTS_CLIENT_URL;
+---
+
+{
+  isPreview && (
+    /* is:inline keeps this verbatim so the surrounding condition reliably
+       controls whether it ships, and so the runtime dynamic import() is left
+       untouched by Astro's bundler. define:vars injects the build-time values.
+       Trade-off: this initPindropComments() call lives in a string, so tsc and
+       the client tests don't see it. Keep its arguments in sync with the
+       module's signature by hand. */
+    <script is:inline define:vars={{ branch, commentsHost, clientUrl }}>
+      {`
+      import(clientUrl)
+        .then(({ initPindropComments }) =>
+          initPindropComments({ host: commentsHost, room: branch }))
+        .catch((err) => console.error("[pindrop] failed to init:", err));
+      `}
+    </script>
+  )
+}

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pindrop comments (local demo)</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, sans-serif;
+        line-height: 1.6;
+      }
+      body {
+        max-width: 46rem;
+        margin: 0 auto;
+        padding: 3rem 1.5rem 6rem;
+      }
+      .hint {
+        padding: 0.75rem 1rem;
+        border: 1px solid currentColor;
+        border-radius: 0.5rem;
+        font-size: 0.9rem;
+        opacity: 0.85;
+      }
+      kbd {
+        padding: 0.1rem 0.4rem;
+        border: 1px solid currentColor;
+        border-radius: 0.3rem;
+        font-size: 0.85em;
+      }
+      .card {
+        margin: 1.5rem 0;
+        padding: 1.25rem 1.5rem;
+        border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+        border-radius: 0.75rem;
+      }
+      #status {
+        font-variant-numeric: tabular-nums;
+      }
+    </style>
+  </head>
+  <body>
+    <p class="hint">
+      Press <kbd>c</kbd> to drop a pin, <kbd>v</kbd> to return to view mode.
+      Open this page in two windows on the same <code>room</code> and the pins
+      sync live. Connection: <strong id="status">connecting…</strong>
+    </p>
+
+    <h1>Pindrop live comments</h1>
+    <p>
+      This page exists to exercise the comments Worker locally. Run the Worker
+      with <code>wrangler dev</code>, serve this folder over http, and load it in
+      two windows. Drop pins on the elements below and watch them appear in the
+      other window.
+    </p>
+
+    <div class="card">
+      <h2>A commentable block</h2>
+      <p>
+        Anchor a pin to this paragraph. The full comment array round-trips
+        through the Durable Object room keyed by the <code>room</code> query
+        param (default <code>demo</code>).
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>Another block</h2>
+      <p>
+        Last write wins. Two reviewers editing at once converge on the most
+        recent full snapshot, which is fine for the handful of people reviewing a PR.
+      </p>
+    </div>
+
+    <script type="module">
+      import { initPindropComments } from "../client/pindrop-comments.js";
+
+      const params = new URLSearchParams(location.search);
+      // Default to the local `wrangler dev` address. Override with
+      // ?host=...&room=... to point at a deployed Worker or a second room.
+      const host = params.get("host") ?? "localhost:8787";
+      const room = params.get("room") ?? "demo";
+
+      const statusEl = document.getElementById("status");
+
+      const handle = await initPindropComments({
+        host,
+        room,
+        user: { name: params.get("user") ?? "Anonymous reviewer" },
+      });
+      // Exposed for debugging and automated checks, e.g.
+      // window.pindropComments.pindrop.getComments().
+      window.pindropComments = handle;
+      const { socket } = handle;
+
+      socket.addEventListener("open", () => {
+        statusEl.textContent = `connected · ${host} · room "${room}"`;
+      });
+      socket.addEventListener("close", () => {
+        statusEl.textContent = "disconnected, retrying…";
+      });
+    </script>
+  </body>
+</html>
