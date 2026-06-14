@@ -7,7 +7,12 @@
 // pin different versions, or a same-origin path to self-host.
 //
 //   import { initPindropComments } from ".../client/pindrop-comments.js";
-//   initPindropComments({ host: "pindrop-comments.you.workers.dev", room: branch });
+//   initPindropComments({ host: "pindrop-comments.you.workers.dev" });
+//
+// `host` is the only required value. `room` defaults to the page's hostname, so
+// reviewers on the same preview URL share a board with no build-time branch
+// variable; pass `room` explicitly for a stable per-branch board. Nothing here
+// assumes a particular host platform.
 //
 // Returns a handle: { pindrop, socket, destroy() }.
 
@@ -24,24 +29,47 @@ const DEFAULTS = {
 };
 
 /**
- * @param {object} options
- * @param {string} options.host   Deployed comments Worker host (no protocol).
- * @param {string} options.room   Board id shared by reviewers, e.g. the branch.
- * @param {string} [options.party]       DO binding, kebab-cased. Default "comments".
- * @param {{name: string}} [options.user] Identity for attributed pins (setUser).
- * @param {string} [options.storageKey]   pindrop local cache key. Default per-room.
- * @param {"auto"|"light"|"dark"} [options.theme]
- * @param {boolean} [options.injectStyles] Inject pindrop's stylesheet. Default true.
- * @param {string} [options.pindropUrl]
- * @param {string} [options.partySocketUrl]
- * @param {string} [options.styleUrl]
+ * @typedef {Object} PindropCommentsOptions
+ * @property {string} host  Deployed comments Worker host (no protocol).
+ * @property {string} [room]  Board id shared by reviewers. Defaults to the page's
+ *   location.hostname (one board per preview URL).
+ * @property {string} [party]  Durable Object binding, kebab-cased. Default "comments".
+ * @property {{ name: string }} [user]  Identity for attributed pins (setUser).
+ * @property {string} [storageKey]  pindrop local cache key. Default `pindrop:<room>`.
+ * @property {"auto" | "light" | "dark"} [theme]
+ * @property {boolean} [injectStyles]  Inject pindrop's stylesheet. Default true.
+ * @property {string} [pindropUrl]  Override the pindrop.js module URL.
+ * @property {string} [partySocketUrl]  Override the partysocket module URL.
+ * @property {string} [styleUrl]  Override the pindrop stylesheet URL.
+ */
+
+/**
+ * @typedef {Object} PindropCommentsHandle
+ * @property {any} pindrop  The pindrop layer instance (see pindrop.js).
+ * @property {any} socket  The underlying PartySocket.
+ * @property {() => void} destroy  Close the socket and tear down pindrop.
+ */
+
+/**
+ * Start live, multiplayer Pindrop comments on the current page.
+ * @param {PindropCommentsOptions} options
+ * @returns {Promise<PindropCommentsHandle>}
  */
 export async function initPindropComments(options) {
   const config = { ...DEFAULTS, ...options };
-  const { host, room, party, user, theme, injectStyles } = config;
+  const { host, party, user, theme, injectStyles } = config;
+
+  // Reviewers on the same preview URL should land on the same board, so the room
+  // defaults to this page's hostname. Pass `room` for a stable per-branch board
+  // regardless of URL.
+  const room = config.room ?? globalThis.location?.hostname;
 
   if (!host) throw new Error("initPindropComments: `host` is required");
-  if (!room) throw new Error("initPindropComments: `room` is required");
+  if (!room) {
+    throw new Error(
+      "initPindropComments: `room` is required here (it defaults to location.hostname, which is unavailable in this environment)",
+    );
+  }
 
   const storageKey = config.storageKey ?? `pindrop:${room}`;
 
@@ -51,8 +79,15 @@ export async function initPindropComments(options) {
     import(config.pindropUrl),
     import(config.partySocketUrl),
   ]);
-  const Pindrop = pindropModule.Pindrop ?? pindropModule.default;
-  const PartySocket = partySocketModule.default ?? partySocketModule.PartySocket;
+  // These modules come from runtime URL strings, so TS infers them as `any`.
+  // Cast to the package types (pulled in as type-only devDependencies; they
+  // still load from the CDN at runtime) so the rest of the module is typed.
+  const Pindrop = /** @type {typeof import("pindrop.js").Pindrop} */ (
+    pindropModule.Pindrop ?? pindropModule.default
+  );
+  const PartySocket = /** @type {typeof import("partysocket").default} */ (
+    partySocketModule.default ?? partySocketModule.PartySocket
+  );
 
   // PartySocket reconnects with backoff and buffers outbound frames while the
   // socket is down, so `save()` below never has to care about connection state.
@@ -67,14 +102,16 @@ export async function initPindropComments(options) {
   // await it too, so a sync can never be applied (and then clobbered by the
   // first init) before the board has hydrated.
   let hydrated = false;
+  /** @type {(pins: any) => void} */
   let resolveFirstInit;
+  /** @type {Promise<any>} */
   const firstInit = new Promise((resolve) => {
     resolveFirstInit = resolve;
   });
 
   const pindrop = Pindrop.init({
     storageKey,
-    theme,
+    theme: /** @type {"auto" | "light" | "dark"} */ (theme),
     adapter: {
       load: () => firstInit,
       save: (pins) => {

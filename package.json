@@ -7,7 +7,9 @@
     "deploy": "wrangler deploy",
     "build": "wrangler deploy --dry-run --outdir dist",
     "types": "wrangler types",
+    "types:client": "tsc client/pindrop-comments.js --allowJs --declaration --emitDeclarationOnly --lib es2022,dom --target es2022 --module esnext --moduleResolution bundler --outDir client",
     "typecheck": "tsc --noEmit",
+    "typecheck:client": "tsc client/pindrop-comments.js --allowJs --checkJs --noEmit --lib es2022,dom --target es2022 --module esnext --moduleResolution bundler",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:client": "node --test 'test/client/*.test.mjs'",
@@ -21,6 +23,8 @@
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.16.15",
     "@cloudflare/workers-types": "^4.20250604.0",
+    "partysocket": "1.1.19",
+    "pindrop.js": "0.1.28",
     "typescript": "^5.5.0",
     "vitest": "^4.1.0",
     "wrangler": "^4.100.0"

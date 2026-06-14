@@ -113,9 +113,24 @@ test("ignores malformed and non-pin frames", async () => {
   assert.equal(state.applied.length, 0);
 });
 
-test("requires host and room", async () => {
+test("requires host, and room when no hostname is available", async () => {
+  // In Node there is no globalThis.location, so room has no fallback here.
   await assert.rejects(() => initPindropComments({ room: "x", injectStyles: false, pindropUrl, partySocketUrl }), /host/);
   await assert.rejects(() => initPindropComments({ host: "x", injectStyles: false, pindropUrl, partySocketUrl }), /room/);
+});
+
+test("defaults room to location.hostname when omitted", async () => {
+  const original = globalThis.location;
+  globalThis.location = { hostname: "pr-7.acme.pages.dev" };
+  try {
+    pindropStub.reset();
+    partySocketStub.reset();
+    await initPindropComments({ host: "comments.example", injectStyles: false, pindropUrl, partySocketUrl });
+    assert.equal(partySocketStub.sockets[0].opts.room, "pr-7.acme.pages.dev");
+  } finally {
+    if (original === undefined) delete globalThis.location;
+    else globalThis.location = original;
+  }
 });
 
 test("destroy() closes the socket and tears down pindrop", async () => {

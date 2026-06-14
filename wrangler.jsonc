@@ -8,10 +8,11 @@
   },
   "vars": {
     // Host suffixes allowed to open a comment board. A leading dot matches
-    // subdomains of that host; a bare host matches exactly. Tighten this to
-    // your exact preview host(s) before relying on it as the only access gate.
-    // localhost / 127.0.0.1 are included so the bundled demo works in dev.
-    "ALLOWED_ORIGINS": ".workers.dev,.pages.dev,localhost,127.0.0.1"
+    // subdomains of that host; a bare host matches exactly. This is the only
+    // access gate, so trim it to just where your preview site is hosted. The
+    // defaults cover common preview platforms as examples (Cloudflare Pages/
+    // Workers, Vercel, Netlify); localhost / 127.0.0.1 let the demo run in dev.
+    "ALLOWED_ORIGINS": ".pages.dev,.workers.dev,.vercel.app,.netlify.app,localhost,127.0.0.1"
   },
   "durable_objects": {
     "bindings": [

@@ -12,10 +12,17 @@ captures what isn't obvious from reading the code.
   exported origin gate (`isAllowedOrigin` / `parseAllowedOrigins`), a 14-day
   idle alarm, and a 512 KiB frame cap.
 - `client/pindrop-comments.js`: vanilla ESM `initPindropComments(options)`.
-  Loads pindrop.js + partysocket from esm.sh. Owns the hydration handshake and
-  echo suppression.
-- `integrations/astro/PindropFeedback.astro`: build-time-gated wrapper that
-  dynamic-imports the client; emits nothing on the prod build.
+  Loads pindrop.js + partysocket from esm.sh. Owns the hydration handshake, echo
+  suppression, and the room-from-hostname default.
+- `client/pindrop-comments.d.ts`: generated from the module's JSDoc and
+  committed (consumers importing the raw file need it present). Regenerate with
+  `bun run types:client` after editing the JSDoc; do not hand-edit.
+- pindrop.js + partysocket are type-only devDependencies. The module loads them
+  from a CDN at runtime, but the dynamic `import(url)` is `any`, so the casts to
+  `typeof import("pindrop.js")` / `typeof import("partysocket").default` give the
+  implementation real types. `bun run typecheck:client` enforces it (checkJs).
+  The public d.ts deliberately keeps the handle's `pindrop`/`socket` as `any` so
+  it stays self-contained (no package types leak to consumers).
 - `examples/demo.html`: local manual demo; exposes `window.pindropComments`.
 - `test/comments.test.ts`: worker tests (vitest-pool-workers, run in workerd).
 - `test/client/*.test.mjs`: client tests (`node --test`) with stub
@@ -62,6 +69,13 @@ captures what isn't obvious from reading the code.
   check over tokens or per-user auth. Don't add auth as a "fix"; if asked,
   extend `onBeforeConnect` in src/index.ts (the room and request are both
   available there).
+- **Platform-neutral by design.** Only the comments Worker requires Cloudflare;
+  the site being commented on can run anywhere. The client module makes no
+  platform assumption. `room` defaults to `globalThis.location?.hostname` (one
+  board per preview URL), so no branch env var is needed. Cloudflare-flavored
+  bits are confined to the examples and the `ALLOWED_ORIGINS` default; those are
+  conveniences, not requirements. Don't reintroduce a hard dependency on
+  `WORKERS_CI_BRANCH` or any single host.
 - **Demo query params.** The static server strips the query string off the
   `.html` form on redirect, so the demo's `?room=`/`?host=` overrides only work
   on the extensionless `/examples/demo` URL.
