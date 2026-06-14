@@ -23,10 +23,18 @@ captures what isn't obvious from reading the code.
   implementation real types. `bun run typecheck:client` enforces it (checkJs).
   The public d.ts deliberately keeps the handle's `pindrop`/`socket` as `any` so
   it stays self-contained (no package types leak to consumers).
+- `bin/pindrop-comments.mjs`: zero-dependency CLI to read and respond to a
+  board from a terminal or agent (`read` / `reply` / `comment` / `resolve`).
+  Wired as the package `bin`; agents run it via `npx github:alandotcom/pindrop-cloudflare`.
+  Pure helpers are exported and unit-tested; `main()` runs only when invoked directly.
+- `skills/pindrop-comments/SKILL.md`: thin Claude Code skill that points an
+  agent at the CLI and defers all flag detail to `--help`. Keep it lightweight;
+  the CLI's `--help` is the source of truth, not the skill.
 - `examples/demo.html`: local manual demo; exposes `window.pindropComments`.
 - `test/comments.test.ts`: worker tests (vitest-pool-workers, run in workerd).
 - `test/client/*.test.mjs`: client tests (`node --test`) with stub
-  pindrop/partysocket injected via the module's own URL options.
+  pindrop/partysocket injected via the module's own URL options;
+  `test/client/cli.test.mjs` covers the CLI's pure helpers and write shapes.
 
 ## Commands
 
@@ -38,6 +46,7 @@ captures what isn't obvious from reading the code.
   runs both.
 - `bun run smoke` runs an over-the-wire WebSocket check against a running
   `bun run dev`.
+- `bun run comments -- <args>` runs the CLI locally (same as the `bin`).
 
 ## Releasing
 
@@ -104,6 +113,23 @@ captures what isn't obvious from reading the code.
 - **Demo query params.** The static server strips the query string off the
   `.html` form on redirect, so the demo's `?room=`/`?host=` overrides only work
   on the extensionless `/examples/demo` URL.
+- **CLI writes must match pindrop's schema, not just the worker's.** The worker
+  stores the pin array opaquely, so a write is only correct if a reviewer's
+  pindrop renders it. The CLI's write builders mirror `Comment`/`Reply` from
+  pindrop's `core/types`, verified against the installed source: ids are
+  `crypto.randomUUID()`; `unread` is never written (pindrop's adapter strips it
+  on save and recomputes it per-client from a local read-ids set); a reply is
+  appended to `replies[]` and does **not** bump the parent's `updatedAt`, since
+  pindrop's `applyRemoteComments` merge unions replies by id but resolves the
+  comment's own fields by newest `updatedAt` (bumping would clobber a concurrent
+  human edit); `resolve` **does** bump `updatedAt` so that same merge keeps it.
+  Agent-authored items carry `meta.source: "agent"`. If you bump the pindrop
+  version, re-verify these against `node_modules/pindrop.js/dist`.
+- **The origin gate does not stop a local agent, by design.** A non-browser
+  client sets its own `Origin`, so the CLI passes `isAllowedOrigin` with the
+  preview's own origin. That is intended (the gate stops stray browsers, not
+  trusted tooling); it is the same access model as a reviewer's browser. Don't
+  "fix" it by adding auth here without reading the Access model note above.
 
 ## External APIs (verified against installed versions)
 

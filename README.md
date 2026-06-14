@@ -53,6 +53,8 @@ CI).
 src/index.ts                               the comments Worker (PartyServer + DO)
 client/pindrop-comments.js                 framework-agnostic drop-in (initPindropComments)
 client/pindrop-comments.d.ts               generated types (bun run types:client)
+bin/pindrop-comments.mjs                   zero-dep CLI: read/reply/comment/resolve from a terminal or agent
+skills/pindrop-comments/SKILL.md           Claude Code skill that points an agent at the CLI
 examples/demo.html                         local two-window multiplayer demo
 test/comments.test.ts                      worker tests (vitest-pool-workers, run in workerd)
 test/client/                               client-wiring tests + injected stubs (node --test)
@@ -256,6 +258,41 @@ anyone who can load a matching preview can read and write its board. That's the
 right trade-off for trusted internal previews. If you need more, like a shared
 token or per-user auth with attributed access, add it in `onBeforeConnect` in
 `src/index.ts`; the room and request are both available there.
+
+## Reading & responding from an agent
+
+The same board is reachable from a terminal or a coding agent, not only a
+browser. `bin/pindrop-comments.mjs` is a zero-dependency CLI (Node >= 22, nothing
+to install) that joins a room the way the client does, so an agent reviewing a
+preview can read the pins and respond to them. A non-browser client can set its
+own `Origin`, which is how it passes the gate above; the access model is the same
+as a reviewer's browser.
+
+```bash
+# read every comment on a preview (host is the comments Worker, or set PINDROP_HOST)
+npx github:alandotcom/pindrop-cloudflare read https://abc-site.acme.workers.dev \
+  --host pindrop-comments.YOUR_SUBDOMAIN.workers.dev
+
+# reply to comment #1 from that listing, then resolve it
+npx github:alandotcom/pindrop-cloudflare reply   <preview-url> --comment 1 --text "fixed in 9e16fe8"
+npx github:alandotcom/pindrop-cloudflare resolve <preview-url> --comment 1
+```
+
+The room and the `Origin` are derived from the preview URL. `read --json` prints
+the raw pin array; `read --watch` streams changes. Writes are attributed to the
+agent (`meta.source: "agent"`) and shaped to pindrop's schema, so a reply or new
+comment shows up live in a reviewer's browser. Run with `--help` for the full
+command set.
+
+The repo also ships a Claude Code skill at `skills/pindrop-comments/` so an
+agent reaches for the CLI on its own. Install it with
+[`skills`](https://github.com/vercel-labs/skills), which pulls the skill straight
+from this repo's `skills/` folder:
+
+```bash
+# add it to Claude Code globally; drop -g to install into the current project
+npx skills add alandotcom/pindrop-cloudflare --skill pindrop-comments -g
+```
 
 ## Cleanup
 
