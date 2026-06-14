@@ -26,8 +26,14 @@ const MAX_FRAME_BYTES = 512 * 1024; // 512 KiB
 const PINS_KEY = "pins";
 
 // Exported for unit testing. True when `origin`'s host matches one of the
-// allowed suffixes. Returns false for a missing or unparseable origin, so a
-// non-browser client with no Origin header is rejected rather than allowed.
+// allowed patterns. Each pattern is one of three forms:
+//   - "*suffix"  glob: host ends with everything after the "*". Use it to scope
+//                to one worker's preview URLs, e.g. "*-site.acme.workers.dev".
+//   - ".suffix"  subdomain: host ends with the dotted suffix (any subdomain of
+//                that host), e.g. ".workers.dev".
+//   - "host"     exact: host equals it, e.g. "localhost".
+// Returns false for a missing or unparseable origin, so a non-browser client
+// with no Origin header is rejected rather than allowed.
 export function isAllowedOrigin(origin: string, allowed: string[]): boolean {
   let host: string;
   try {
@@ -35,9 +41,11 @@ export function isAllowedOrigin(origin: string, allowed: string[]): boolean {
   } catch {
     return false;
   }
-  return allowed.some((suffix) =>
-    suffix.startsWith(".") ? host.endsWith(suffix) : host === suffix,
-  );
+  return allowed.some((pattern) => {
+    if (pattern.startsWith("*")) return host.endsWith(pattern.slice(1));
+    if (pattern.startsWith(".")) return host.endsWith(pattern);
+    return host === pattern;
+  });
 }
 
 export function parseAllowedOrigins(raw: string | undefined): string[] {

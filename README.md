@@ -65,24 +65,41 @@ bun run deploy
 Note the deployed host from the output, e.g.
 `pindrop-comments.YOUR_SUBDOMAIN.workers.dev`.
 
-Then lock down who can open a board. The only access gate is an `Origin` check,
-configured by the `ALLOWED_ORIGINS` var in `wrangler.jsonc`, a comma-separated
-list of host suffixes. Set it to wherever your preview site is hosted, which can
-be any platform (the comments Worker runs on Cloudflare; the site it comments on
-need not):
+### Lock down who can open a board
 
-```jsonc
-"vars": {
-  // A leading dot matches subdomains of that host; a bare host matches exactly.
-  // Examples by platform: Cloudflare .pages.dev / .workers.dev,
-  // Vercel .vercel.app, Netlify .netlify.app.
-  "ALLOWED_ORIGINS": ".vercel.app,localhost,127.0.0.1"
-}
+The only access gate is an `Origin` check. `ALLOWED_ORIGINS` is a comma-separated
+list of host patterns; a connection is allowed when its `Origin` host matches any
+entry. The comments Worker runs on Cloudflare, but the site it comments on can be
+hosted anywhere. Each entry is one of:
+
+| Pattern   | Matches                                 | Example                       |
+| --------- | --------------------------------------- | ----------------------------- |
+| `*suffix` | any host ending in everything after `*` | `*-site.acme.workers.dev`     |
+| `.suffix` | any subdomain of that host              | `.workers.dev`, `.vercel.app` |
+| `host`    | that exact host                         | `localhost`                   |
+
+A request with no `Origin` header (a non-browser client) is always rejected.
+
+For Cloudflare versioned previews, which look like
+`<hash>-<worker>.<account>.workers.dev`, use `*-<worker>.<account>.workers.dev`.
+The leading `-` in that glob scopes the board to that one worker's preview URLs
+and leaves its bare production URL (`<worker>.<account>.workers.dev`) out.
+
+**Set your value without committing it.** `wrangler.jsonc` sets
+`keep_vars: true`, so `bun run deploy` never overwrites the live
+`ALLOWED_ORIGINS`. The `ALLOWED_ORIGINS` in `wrangler.jsonc` is only the dev/test
+default (generic platform examples). Keep your real preview host, which may be
+private, out of the repo and set it on the deployed Worker out-of-band, either
+with a one-off deploy flag:
+
+```bash
+# applied to the live Worker and preserved by keep_vars on later deploys
+bunx wrangler deploy --var ALLOWED_ORIGINS:'*-your-site.your-account.workers.dev'
 ```
 
-Trim this to your exact preview host(s) before relying on it. Rerun
-`bun run deploy` after changing it. See [Access model](#access-model) for the
-limits of an origin-only gate.
+or in the Cloudflare dashboard (Workers & Pages, your Worker, Settings,
+Variables). See [Access model](#access-model) for the limits of an origin-only
+gate.
 
 ## 2. Add the client to your site
 

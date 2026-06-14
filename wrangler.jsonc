@@ -3,15 +3,27 @@
   "name": "pindrop-comments",
   "main": "src/index.ts",
   "compatibility_date": "2026-06-09",
+  // Deploys do not overwrite the live ALLOWED_ORIGINS, so each deployment sets
+  // its own private preview host(s) out-of-band (dashboard or a one-off
+  // `--var`) without committing them. The `vars` block below is only the
+  // dev/test default. See README "Access model".
+  "keep_vars": true,
   "observability": {
     "enabled": true
   },
   "vars": {
-    // Host suffixes allowed to open a comment board. A leading dot matches
-    // subdomains of that host; a bare host matches exactly. This is the only
-    // access gate, so trim it to just where your preview site is hosted. The
-    // defaults cover common preview platforms as examples (Cloudflare Pages/
-    // Workers, Vercel, Netlify); localhost / 127.0.0.1 let the demo run in dev.
+    // Hosts allowed to open a comment board. This is the only access gate, so
+    // trim it to just where your preview site is hosted. Each comma-separated
+    // entry is one of:
+    //   *suffix   glob   - host ends with everything after the "*". Scopes to
+    //                      one worker's preview URLs, e.g.
+    //                      "*-site.acme.workers.dev" (NOT the bare production
+    //                      "site.acme.workers.dev", which lacks the leading "-").
+    //   .suffix   subdomain - any subdomain of that host, e.g. ".workers.dev".
+    //   host      exact  - host equals it, e.g. "localhost".
+    // These are generic examples (Cloudflare Pages/Workers, Vercel, Netlify);
+    // localhost / 127.0.0.1 let the demo run in dev. Do not commit a private
+    // preview host here - override it at deploy time (see README "Access model").
     "ALLOWED_ORIGINS": ".pages.dev,.workers.dev,.vercel.app,.netlify.app,localhost,127.0.0.1"
   },
   "durable_objects": {

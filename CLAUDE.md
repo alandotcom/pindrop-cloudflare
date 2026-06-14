@@ -65,10 +65,24 @@ captures what isn't obvious from reading the code.
   `load()` value and the gate that `sync` frames await. This is deliberate: it
   makes "sync arrives before the first init" impossible to mis-apply. Don't
   reintroduce separate `resolveLoad` / buffered-pins variables.
-- **Access model is origin-only by design.** The user chose an Origin-suffix
-  check over tokens or per-user auth. Don't add auth as a "fix"; if asked,
-  extend `onBeforeConnect` in src/index.ts (the room and request are both
-  available there).
+- **Access model is origin-only by design.** The user chose an Origin check over
+  tokens or per-user auth. Don't add auth as a "fix"; if asked, extend
+  `onBeforeConnect` in src/index.ts (the room and request are both available
+  there). `ALLOWED_ORIGINS` is a comma-separated list of host patterns matched in
+  `isAllowedOrigin`: `*suffix` is a glob (host ends with everything after the
+  `*`, e.g. `*-site.acme.workers.dev` for one worker's preview URLs, which
+  excludes the bare `site.acme.workers.dev`), `.suffix` matches any subdomain, a
+  bare `host` matches exactly, and a missing Origin is rejected. Configuring it
+  shouldn't require reading src/index.ts; if it does, this note is stale.
+- **ALLOWED_ORIGINS is set out-of-band, not committed.** `wrangler.jsonc` has
+  `keep_vars: true`, so `wrangler deploy` never pushes the config `vars`; the
+  committed `ALLOWED_ORIGINS` is only the dev/test default (generic platform
+  examples that the worker tests rely on). Each deployment sets its own live
+  value via the dashboard or a one-off `wrangler deploy --var
+  ALLOWED_ORIGINS:'...'` (`--var` applies on that deploy; `keep_vars` preserves
+  it afterward). Don't commit a real or private preview host into wrangler.jsonc,
+  and don't drop `keep_vars` (a plain deploy would then clobber the live gate
+  with the example list).
 - **Platform-neutral by design.** Only the comments Worker requires Cloudflare;
   the site being commented on can run anywhere. The client module makes no
   platform assumption. `room` defaults to `globalThis.location?.hostname` (one

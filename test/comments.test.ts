@@ -6,7 +6,17 @@ import { isAllowedOrigin, parseAllowedOrigins, type Comments } from "../src/inde
 const OK_ORIGIN = "https://feature-login.acme.workers.dev";
 
 describe("isAllowedOrigin", () => {
-  const allowed = parseAllowedOrigins(".workers.dev,localhost,127.0.0.1");
+  const allowed = parseAllowedOrigins("*-site.acme.workers.dev,.workers.dev,localhost,127.0.0.1");
+
+  it("matches a glob suffix (one worker's preview URLs)", () => {
+    expect(isAllowedOrigin("https://pr-7-site.acme.workers.dev", allowed)).toBe(true);
+  });
+
+  it("a glob's leading dash excludes the bare production host", () => {
+    const previewsOnly = parseAllowedOrigins("*-site.acme.workers.dev");
+    expect(isAllowedOrigin("https://pr-7-site.acme.workers.dev", previewsOnly)).toBe(true);
+    expect(isAllowedOrigin("https://site.acme.workers.dev", previewsOnly)).toBe(false);
+  });
 
   it("matches a subdomain of a leading-dot suffix", () => {
     expect(isAllowedOrigin("https://pr-12.acme.workers.dev", allowed)).toBe(true);
