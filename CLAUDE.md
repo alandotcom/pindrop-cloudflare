@@ -39,6 +39,17 @@ captures what isn't obvious from reading the code.
 - `bun run smoke` runs an over-the-wire WebSocket check against a running
   `bun run dev`.
 
+## Releasing
+
+- Consumers import the client over jsDelivr pinned to a git tag, so a release is
+  just an annotated tag on `main` (`git tag -a v0.0.2 -m v0.0.2 && git push
+  origin v0.0.2`), plus bumping the `@v…` in the README's CDN URLs. The first
+  release is `v0.0.1`.
+- Pin docs/examples to an exact tag, never `@main`. A tagged jsDelivr URL is
+  immutable and cached ~1 year; `@main` is cached 12h and mutates on every push;
+  a range (`@0.0`/`@latest`) is cached 7d and auto-rolls consumers onto new
+  (possibly breaking, since `0.x`) releases. See README "Releasing".
+
 ## Gotchas, read before editing
 
 - **Generated types.** `worker-configuration.d.ts` is gitignored, so a fresh

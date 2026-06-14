@@ -111,7 +111,11 @@ gate.
 The client loads `pindrop.js` and `partysocket` from a CDN, so nothing has to be
 bundled. Host `client/pindrop-comments.js` somewhere your site can import it:
 self-host a copy, or reference this repo through a CDN such as
-`https://cdn.jsdelivr.net/gh/alandotcom/pindrop-cloudflare@main/client/pindrop-comments.js`.
+`https://cdn.jsdelivr.net/gh/alandotcom/pindrop-cloudflare@v0.0.1/client/pindrop-comments.js`.
+Pin to a released tag (`@v0.0.1`), not `@main`: a tagged URL is immutable and
+cached for a year, so your site is unaffected by later pushes, whereas `@main`
+is a moving target jsDelivr only caches for 12 hours. See
+[Releasing](#releasing) for how versions are cut.
 
 ### Any site (plain HTML / any framework)
 
@@ -152,7 +156,7 @@ Importing from a CDN by URL is untyped by default. Map the URL to the local
 declaration in a project `.d.ts`:
 
 ```ts
-declare module "https://cdn.jsdelivr.net/gh/alandotcom/pindrop-cloudflare@main/client/pindrop-comments.js" {
+declare module "https://cdn.jsdelivr.net/gh/alandotcom/pindrop-cloudflare@v0.0.1/client/pindrop-comments.js" {
   export * from "./types/pindrop-comments";
 }
 ```
@@ -173,7 +177,7 @@ In your base layout (e.g. `src/layouts/Base.astro`), just before `</body>`:
 <script is:inline define:vars={{
   prodHost: "yoursite.com",
   host: "pindrop-comments.YOUR_SUBDOMAIN.workers.dev",
-  clientUrl: "https://cdn.jsdelivr.net/gh/alandotcom/pindrop-cloudflare@main/client/pindrop-comments.js",
+  clientUrl: "https://cdn.jsdelivr.net/gh/alandotcom/pindrop-cloudflare@v0.0.1/client/pindrop-comments.js",
 }}>
   {`if (location.hostname !== prodHost) {
     import(clientUrl)
@@ -221,6 +225,28 @@ cross-client broadcast:
 ```bash
 bun run smoke
 ```
+
+## Releasing
+
+Consumers import the client from a CDN pinned to a git tag, so cutting a release
+is just tagging `main`:
+
+```bash
+bun run test:all && bun run typecheck   # green before tagging
+git tag -a v0.0.2 -m "v0.0.2"
+git push origin v0.0.2
+```
+
+Then bump the version in the CDN URLs under
+[Add the client to your site](#2-add-the-client-to-your-site) (and in your own
+site's import) from the previous tag to the new one.
+
+Pin to an exact tag rather than `@main` or a range. jsDelivr serves a tagged URL
+(`@v0.0.1`) as immutable and caches it for a year, so a site only picks up a
+release when it changes the URL. `@main` is cached for just 12 hours and any push
+reaches every site at once; a range like `@0.0` or `@latest` is cached for 7 days
+and silently rolls sites onto new releases, which for a `0.x` package can mean
+breaking changes. Use a range only if you want that and accept the cache lag.
 
 ## Access model
 
