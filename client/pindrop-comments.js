@@ -23,6 +23,7 @@ const DEFAULTS = {
   party: "comments", // kebab-case of the "Comments" Durable Object binding
   theme: "auto",
   injectStyles: true,
+  hideExportImport: true,
   pindropUrl: `https://esm.sh/pindrop.js@${PINDROP_VERSION}`,
   partySocketUrl: `https://esm.sh/partysocket@${PARTYSOCKET_VERSION}`,
   styleUrl: `https://unpkg.com/pindrop.js@${PINDROP_VERSION}/dist/style.css`,
@@ -38,6 +39,10 @@ const DEFAULTS = {
  * @property {string} [storageKey]  pindrop local cache key. Default `pindrop:<room>`.
  * @property {"auto" | "light" | "dark"} [theme]
  * @property {boolean} [injectStyles]  Inject pindrop's stylesheet. Default true.
+ * @property {boolean} [hideExportImport]  Hide pindrop's built-in "Load"/"Share"
+ *   (import/export) toolbar buttons. Default true: the DO is the live source of
+ *   truth, so they're redundant, and importing a file would broadcast over
+ *   everyone's board.
  * @property {string} [pindropUrl]  Override the pindrop.js module URL.
  * @property {string} [partySocketUrl]  Override the partysocket module URL.
  * @property {string} [styleUrl]  Override the pindrop stylesheet URL.
@@ -121,6 +126,9 @@ export async function initPindropComments(options) {
     },
   });
 
+  // Must run after init: pindrop builds its toolbar (and shadow host) here.
+  if (config.hideExportImport) hideExportImportButtons();
+
   if (user?.name) pindrop.setUser({ name: user.name });
 
   function applyRemote(pins) {
@@ -170,4 +178,27 @@ function ensureStylesheet(href) {
   link.href = href;
   link.dataset.pindropStyle = "";
   document.head.appendChild(link);
+}
+
+// pindrop renders its own "Load comments" (import) and "Share comments" (export)
+// toolbar buttons. With the DO as the live source of truth they're redundant,
+// and import is the dangerous one: it merges a chosen file and fires save(),
+// which broadcasts over every reviewer's board. pindrop has no option to omit
+// them, and it builds the toolbar inside a shadow root (host `#pindrop-web-root`,
+// mode "open"), so a page-level stylesheet can't reach it; inject the hide rule
+// into that shadow root instead. Selectors and the host id track pindrop
+// internals for PINDROP_VERSION. No-op off the DOM (SSR, the node tests) or
+// before the shadow host exists.
+function hideExportImportButtons() {
+  if (typeof document === "undefined") return;
+  const shadow = document.getElementById("pindrop-web-root")?.shadowRoot;
+  if (!shadow || shadow.querySelector("style[data-pindrop-hide-io]")) return;
+  const style = document.createElement("style");
+  style.dataset.pindropHideIo = "";
+  style.textContent =
+    '.pindrop-toolbar button[aria-label="Load comments"],' +
+    '.pindrop-toolbar button[aria-label="Share comments"]{display:none}' +
+    // and the now-dangling divider that preceded the Import button
+    '.pindrop-toolbar .pindrop-toolbar-divider:has(+ button[aria-label="Load comments"]){display:none}';
+  shadow.appendChild(style);
 }

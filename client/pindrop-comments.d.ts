@@ -8,6 +8,10 @@
  * @property {string} [storageKey]  pindrop local cache key. Default `pindrop:<room>`.
  * @property {"auto" | "light" | "dark"} [theme]
  * @property {boolean} [injectStyles]  Inject pindrop's stylesheet. Default true.
+ * @property {boolean} [hideExportImport]  Hide pindrop's built-in "Load"/"Share"
+ *   (import/export) toolbar buttons. Default true: the DO is the live source of
+ *   truth, so they're redundant, and importing a file would broadcast over
+ *   everyone's board.
  * @property {string} [pindropUrl]  Override the pindrop.js module URL.
  * @property {string} [partySocketUrl]  Override the partysocket module URL.
  * @property {string} [styleUrl]  Override the pindrop stylesheet URL.
@@ -53,6 +57,13 @@ export type PindropCommentsOptions = {
      * Inject pindrop's stylesheet. Default true.
      */
     injectStyles?: boolean;
+    /**
+     * Hide pindrop's built-in "Load"/"Share"
+     * (import/export) toolbar buttons. Default true: the DO is the live source of
+     * truth, so they're redundant, and importing a file would broadcast over
+     * everyone's board.
+     */
+    hideExportImport?: boolean;
     /**
      * Override the pindrop.js module URL.
      */
