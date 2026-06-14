@@ -2,8 +2,9 @@
 
 Durable, multiplayer [Pindrop](https://pindropjs.com) comment boards for site
 preview deployments. Reviewers drop pins on a preview URL and see each other's
-comments in real time. One Durable Object room per preview (keyed by branch),
-WebSocket push, hibernation while idle, and a 14-day self-cleanup.
+comments in real time. One Durable Object room per preview (one board per
+preview URL by default), WebSocket push, hibernation while idle, and a 14-day
+self-cleanup.
 
 The backend is a single Cloudflare Worker. The client is one framework-agnostic
 ES module you drop into any site. The README shows a plain-HTML snippet and an
@@ -22,6 +23,10 @@ Astro example, but nothing here is tied to a particular framework.
   attracts.
 - **Echo-suppressed merge.** Inbound state is applied with
   `applyRemoteComments`, guarded so it never bounces back out as a fresh write.
+- **No stray file import/export.** Pindrop ships Load and Share buttons that read
+  and write comment files. They're hidden by default, since the room already
+  holds the canonical state and importing a file would push it over everyone
+  else's board. Pass `hideExportImport: false` to bring them back.
 - **Cheap while idle.** Hibernation evicts the idle DO from memory while keeping
   sockets attached. An idle alarm reclaims a board 14 days after the last time
   anyone connected or wrote to it; opening the preview counts, so a board lives
